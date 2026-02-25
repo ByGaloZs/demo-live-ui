@@ -1,8 +1,18 @@
+/**
+ * src/features/demoLive/DemoLiveSection.jsx
+ * Componente contenedor principal de la sección de demostraciones en vivo.
+ * Gestiona el estado de la demo seleccionada y los valores del formulario.
+ * Coordina la comunicación entre las tarjetas de opciones y el formulario.
+ */
+
 import { useState } from "react";
 import { demoOptions, benefits } from "./demoData";
 import DemoCards from "./DemoCards";
 import DemoForm from "./DemoForm";
 
+/**
+ * Estado inicial del formulario de solicitud de demo.
+ */
 const initialFormState = {
   fullName: "",
   phone: "",
@@ -10,18 +20,32 @@ const initialFormState = {
   companyName: "",
 };
 
+/**
+ * Componente DemoLiveSection
+ * Renderiza la sección completa con:
+ * - Encabezado introductorio con beneficios
+ * - Tarjetas de opciones de demo seleccionables
+ * - Formulario para solicitar la demostración
+ */
 function DemoLiveSection() {
-  // Estado para controlar la opcion de demo seleccionada.
+  // Estado para controlar la opción de demo seleccionada
   const [selectedDemoId, setSelectedDemoId] = useState(demoOptions[0].id);
-  // Estado centralizado de los campos del formulario.
+
+  // Estado centralizado de los campos del formulario
   const [formValues, setFormValues] = useState(initialFormState);
 
-  // Deriva el objeto completo de la demo activa a partir del id.
+  // Obtiene el objeto completo de la demo activa usando el ID seleccionado
   const selectedDemo = demoOptions.find((demo) => demo.id === selectedDemoId);
 
+  /**
+   * Manejador genérico para cambios en los inputs del formulario.
+   * Actualiza dinámicamente el estado basado en el atributo 'name' del input.
+   * Evita crear handlers individuales para cada campo.
+   *
+   * @param {Event} event - Evento del input
+   */
   const handleInputChange = (event) => {
     const { name, value } = event.target;
-    // Actualizacion generica por nombre de campo para no crear handlers por input.
     setFormValues((prev) => ({
       ...prev,
       [name]: value,

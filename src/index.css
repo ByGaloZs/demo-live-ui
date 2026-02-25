@@ -1,10 +1,19 @@
+/**
+ * src/index.css
+ * Estilos globales de la aplicación.
+ * Importa las capas de Tailwind CSS y define estilos base personalizados.
+ */
+
+/* Importa las capas de utilidades de Tailwind CSS */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Capa base: estilos globales del body */
 @layer base {
   body {
     @apply bg-white text-slate-900;
+    /* Suavizado de fuentes para mejor legibilidad */
     font-smoothing: antialiased;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

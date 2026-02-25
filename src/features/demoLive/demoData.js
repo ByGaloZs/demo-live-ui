@@ -1,13 +1,26 @@
+/**
+ * src/features/demoLive/demoData.js
+ * Datos estáticos para la sección de demostraciones en vivo.
+ * Incluye beneficios y configuración de las tarjetas de demostración.
+ */
+
 import headset from "../../assets/demo-icons/headset.svg";
 import bank from "../../assets/demo-icons/bank.svg";
 import trendUp from "../../assets/demo-icons/trend-up.svg";
 import clipboard from "../../assets/demo-icons/clipboard.svg";
 
-// Lista de beneficios mostrados en el bloque de introduccion.
+/**
+ * Lista de beneficios principales mostrados en la sección introductoria.
+ * Estos beneficios se muestran con checkmarks visuales en la página.
+ */
 export const benefits = ["Respuesta inmediata", "Voz 100% natural", "Múltiples casos de uso"];
 
-// Opciones que alimentan las tarjetas y la seleccion de demo activa.
-// `id` funciona como identificador estable para seleccion y keys de React.
+/**
+ * Opciones de demos disponibles.
+ * Cada opción alimenta una tarjeta seleccionable y se utiliza para determinar
+ * qué agente de IA será utilizado para la demostración.
+ * El campo `id` es estable y se utiliza como identificador para selección y claves de React.
+ */
 export const demoOptions = [
   {
     id: "support",

@@ -1,3 +1,10 @@
+/**
+ * src/App.css
+ * Estilos específicos del componente App y elementos legacy.
+ * Nota: La mayoría de los estilos se manejan con Tailwind CSS.
+ */
+
+/* Contenedor principal de la aplicación */
 #root {
   max-width: 1280px;
   margin: 0 auto;

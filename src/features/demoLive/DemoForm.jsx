@@ -1,26 +1,54 @@
+/**
+ * src/features/demoLive/DemoForm.jsx
+ * Formulario para solicitar una demostración en vivo.
+ * Recopila datos del usuario y envía la solicitud al servidor para iniciar una llamada.
+ */
+
 import { useState } from "react";
 
+/**
+ * Estilos reutilizables para inputs del formulario.
+ * Utiliza clases de Tailwind CSS para apariencia consistente.
+ */
 const inputStyles =
   "mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-300/50";
 
+/**
+ * Componente DemoForm
+ * Renderiza un formulario para solicitar demostraciones en vivo.
+ * El formulario es controlado por el componente padre (DemoLiveSection).
+ *
+ * @param {Object} props - Props del componente
+ * @param {Object} props.values - Valores actuales del formulario
+ * @param {Function} props.onChange - Callback para cambios en los inputs
+ * @param {Object} props.selectedDemo - Información de la demo seleccionada
+ */
 function DemoForm({ values, onChange, selectedDemo }) {
+  // Estado para controlar la carga durante el envío del formulario
   const [isLoading, setIsLoading] = useState(false);
 
+  /**
+   * Manejador del envío del formulario.
+   * Valida los datos, envía la solicitud al servidor y muestra feedback al usuario.
+   *
+   * @param {Event} event - Evento del formulario
+   */
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    // Validate required fields
+    // Valida que los campos requeridos estén completos
     if (!values.phone || !values.fullName) {
       alert("Por favor completa el teléfono y nombre completo.");
       return;
     }
 
-    // Get demo ID from selectedDemo
+    // Obtiene el ID de la demo seleccionada (default: "collections")
     const demoId = selectedDemo?.id || "collections";
 
     setIsLoading(true);
 
     try {
+      // Envía la solicitud al endpoint del servidor
       const response = await fetch("/api/call-demo", {
         method: "POST",
         headers: {
@@ -33,23 +61,27 @@ function DemoForm({ values, onChange, selectedDemo }) {
         }),
       });
 
+      // Parsea la respuesta JSON
       const data = await response.json();
 
+      // Verifica si la solicitud fue exitosa
       if (!response.ok || !data.ok) {
         console.error("Call demo error:", data);
         alert(`Error: ${data.message || "No se pudo procesar la llamada"}`);
         return;
       }
 
-      // Success
+      // Éxito: muestra confirmación al usuario
       alert(`¡Perfecto! Nos comunicaremos a ${values.phone} en 30 segundos. Agente: ${selectedDemo?.title || "Demo"}`);
 
-      // Optionally log the payload for debugging
+      // Log del payload para debugging
       console.log("Mock call payload:", data.payload);
     } catch (error) {
+      // Maneja errores de conexión
       console.error("Error submitting call:", error);
       alert("Error de conexión. Por favor intenta de nuevo.");
     } finally {
+      // Finaliza el estado de carga
       setIsLoading(false);
     }
   };
@@ -57,6 +89,7 @@ function DemoForm({ values, onChange, selectedDemo }) {
   return (
     <div className="relative overflow-hidden rounded-2xl border-2 border-slate-100 bg-white shadow-2xl">
       <div className="p-6 sm:p-8 relative">
+        {/* Encabezado del formulario */}
         <div className="flex items-start justify-between gap-4 mb-2">
           <div>
             <p className="text-2xl font-bold text-slate-900">Solicita tu Demo en Vivo</p>
@@ -65,7 +98,7 @@ function DemoForm({ values, onChange, selectedDemo }) {
         </div>
 
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-          {/* Inputs controlados: el estado vive en DemoLiveSection */}
+          {/* Los inputs están controlados por el componente padre (DemoLiveSection) */}
           <div>
             <label className="text-sm font-semibold text-slate-700">Número de teléfono</label>
             <input

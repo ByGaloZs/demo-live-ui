@@ -12,17 +12,21 @@ const demoAgents = {
     name: "Collections Agent",
     description: "Cobranza / Collections",
   },
-  // Future demos can be added here
-  // sales: {
-  //   agentId: process.env.RETELL_AGENT_SALES || "mock-agent-sales",
-  //   name: "Sales Agent",
-  //   description: "Sales Calls",
-  // },
-  // support: {
-  //   agentId: process.env.RETELL_AGENT_SUPPORT || "mock-agent-support",
-  //   name: "Support Agent",
-  //   description: "Customer Support",
-  // },
+  sales: {
+    agentId: process.env.RETELL_AGENT_SALES || "mock-agent-sales",
+    name: "Sales Agent",
+    description: "Sales Calls",
+  },
+  support: {
+    agentId: process.env.RETELL_AGENT_SUPPORT || "mock-agent-support",
+    name: "Support Agent",
+    description: "Customer Support",
+  },
+  surveys: {
+    agentId: process.env.RETELL_AGENT_SURVEYS || "mock-agent-surveys",
+    name: "Surveys Agent",
+    description: "Customer Surveys",
+  },
 };
 
 export function getAgentConfig(demoId) {

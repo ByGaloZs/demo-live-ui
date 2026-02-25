@@ -36,6 +36,7 @@ function DemoForm({ values, onChange, selectedDemo }) {
       const data = await response.json();
 
       if (!response.ok || !data.ok) {
+        console.error("Call demo error:", data);
         alert(`Error: ${data.message || "No se pudo procesar la llamada"}`);
         return;
       }

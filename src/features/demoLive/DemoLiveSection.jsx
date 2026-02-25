@@ -90,7 +90,7 @@ function DemoLiveSection() {
         {/* Sticky está bien. Si aun así quieres que siempre mida EXACTO igual, quita lg:sticky */}
         <div className="order-2 lg:order-none lg:self-center">
           {/* Formulario controlado por props para mantener una sola fuente de verdad */}
-          <DemoForm values={formValues} onChange={handleInputChange} selectedDemo={selectedDemo?.title} />
+          <DemoForm values={formValues} onChange={handleInputChange} selectedDemo={selectedDemo} />
         </div>
       </div>
     </section>

@@ -1,14 +1,56 @@
+import { useState } from "react";
+
 const inputStyles =
   "mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-300/50";
 
 function DemoForm({ values, onChange, selectedDemo }) {
-  const handleSubmit = (event) => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    // Por ahora solo registra la solicitud; aqui se conectaria el endpoint real.
-    console.log("Demo solicitado:", {
-      selectedDemo,
-      ...values,
-    });
+
+    // Validate required fields
+    if (!values.phone || !values.fullName) {
+      alert("Por favor completa el teléfono y nombre completo.");
+      return;
+    }
+
+    // Get demo ID from selectedDemo
+    const demoId = selectedDemo?.id || "collections";
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/call-demo", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          phone: values.phone,
+          fullName: values.fullName,
+          demoId: demoId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.ok) {
+        alert(`Error: ${data.message || "No se pudo procesar la llamada"}`);
+        return;
+      }
+
+      // Success
+      alert(`¡Perfecto! Nos comunicaremos a ${values.phone} en 30 segundos. Agente: ${selectedDemo?.title || "Demo"}`);
+
+      // Optionally log the payload for debugging
+      console.log("Mock call payload:", data.payload);
+    } catch (error) {
+      console.error("Error submitting call:", error);
+      alert("Error de conexión. Por favor intenta de nuevo.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -71,12 +113,13 @@ function DemoForm({ values, onChange, selectedDemo }) {
           <div className="pt-3">
             <button
               type="submit"
-              className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 text-base font-bold text-white shadow-lg shadow-blue-300/50 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-blue-300/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center gap-2"
+              disabled={isLoading}
+              className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 text-base font-bold text-white shadow-lg shadow-blue-300/50 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-blue-300/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-lg"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773c.058.319.159.717.327 1.142.228.567.534 1.273.97 2 .436.727.95 1.379 1.578 1.913.629.534 1.265.821 1.914.821.649 0 1.285-.287 1.914-.82.627-.535 1.142-1.186 1.578-1.914.436-.727.742-1.433.97-2 .168-.425.269-.823.327-1.142L14.46 6.27a1 1 0 01-.54-1.06l.74-4.435A1 1 0 0116.847 2H19a1 1 0 011 1v14a1 1 0 01-1 1h-2.153a1 1 0 01-.986-.836l-.74-4.435a1 1 0 01.54-1.06l1.548-.773c-.058-.319-.159-.717-.327-1.142-.228-.567-.534-1.273-.97-2-.436-.727-.95-1.379-1.578-1.913-.629-.534-1.265-.821-1.914-.821-.649 0-1.285.287-1.914.82-.627.535-1.142 1.186-1.578 1.914-.436.727-.742 1.433-.97 2-.168.425-.269.823-.327 1.142l1.548.773a1 1 0 01.54 1.06l-.74 4.435a1 1 0 01-.986.836H4a1 1 0 01-1-1V3z" />
               </svg>
-              Llamar ahora
+              {isLoading ? "Procesando..." : "Llamar ahora"}
             </button>
             <p className="mt-3 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
               <span>🔒</span> Protegemos tus datos • Atención inmediata

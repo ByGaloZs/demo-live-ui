@@ -89,20 +89,12 @@ router.post("/call-demo", async (req, res) => {
 
       // Si por alguna razón no hay defaults, igual seguimos (solo con nombre/apellido)
       if (defaults) {
-        const today = new Date();
-        const fmt = (d) => d.toISOString().slice(0, 10); // YYYY-MM-DD
-
-        const offsetDays = Number(defaults.paymentDateOffsetDays || 0);
-        const paymentDate = new Date(today.getTime() + offsetDays * 24 * 60 * 60 * 1000);
-
         dynamicVars = {
           ...dynamicVars,
-          rl_today: fmt(today),
-          rl_paymentDate: fmt(paymentDate),
-          rl_debtAmount: defaults.rl_debtAmount,
+          rl_today: defaults.rl_today,
+          rl_dueDate: defaults.rl_dueDate,
+          rl_amount: defaults.rl_amount,
           rl_dpd: defaults.rl_dpd,
-          prolongation_amount: defaults.prolongation_amount,
-          prolongation_term: defaults.prolongation_term,
         };
       }
     }

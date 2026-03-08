@@ -13,10 +13,9 @@
 export const DEMO_DEFAULTS = {
   // Valores por defecto para el agente de Cobranza
   collections: {
-    rl_debtAmount: "1500", // Monto de deuda en pesos
-    rl_dpd: "12", // Días de Atraso (Days Past Due)
-    prolongation_amount: "300", // Monto de prórroga disponible
-    prolongation_term: "7", // Plazo de prórroga en días
-    paymentDateOffsetDays: 3, // Offset para calcular la fecha de pago
+    rl_amount: process.env.RETELL_COLLECTIONS_AMOUNT || "1500", // Monto fijo de deuda
+    rl_dpd: process.env.RETELL_COLLECTIONS_DPD || "1", // Días de atraso fijos
+    rl_today: process.env.RETELL_COLLECTIONS_TODAY || "2026-03-08", // Fecha fija (YYYY-MM-DD)
+    rl_dueDate: process.env.RETELL_COLLECTIONS_DUE_DATE || "2026-03-11", // Vencimiento fijo (YYYY-MM-DD)
   },
 };

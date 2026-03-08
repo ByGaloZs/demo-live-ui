@@ -7,6 +7,8 @@
 
 import process from "process";
 import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 
 // Cargar variables de entorno primero, antes de otros imports
 dotenv.config();
@@ -17,9 +19,20 @@ import callDemoRouter from "./routes/callDemo.js";
 
 const app = express();
 const PORT = process.env.PORT || 8787;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const isProduction = process.env.NODE_ENV === "production";
 
 // Middlewares
-app.use(cors()); // Habilita CORS para comunicación con el frontend
+if (isProduction) {
+  app.use(
+    cors({
+      origin: process.env.CORS_ORIGIN || false,
+    }),
+  );
+} else {
+  app.use(cors());
+}
 app.use(express.json()); // Parsea cuerpos JSON en las solicitudes
 
 /**
@@ -32,6 +45,16 @@ app.get("/api/health", (req, res) => {
 
 // Rutas de API
 app.use("/api", callDemoRouter);
+
+if (isProduction) {
+  const distPath = path.resolve(__dirname, "../dist");
+
+  app.use(express.static(distPath));
+
+  app.get(/^\/(?!api).*/, (req, res) => {
+    res.sendFile(path.join(distPath, "index.html"));
+  });
+}
 
 // Inicia el servidor
 app.listen(PORT, () => {

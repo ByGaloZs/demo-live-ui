@@ -124,7 +124,7 @@ Ejecutar el proyecto requiere **dos terminales** simultáneas:
 **Terminal 1 - Frontend (Vite)**:
 
 ```bash
-npm run dev
+npm run dev:ui
 ```
 
 Esto iniciará el servidor de desarrollo en `http://localhost:5173`
@@ -132,10 +132,23 @@ Esto iniciará el servidor de desarrollo en `http://localhost:5173`
 **Terminal 2 - Backend (Express)**:
 
 ```bash
-node server/index.js
+npm run dev:api
 ```
 
 Esto iniciará el servidor API en `http://localhost:8787`
+
+### Simular Producción Localmente
+
+```bash
+npm run build
+NODE_ENV=production npm run start
+```
+
+En PowerShell:
+
+```powershell
+$env:NODE_ENV="production"; npm run start
+```
 
 ### Build de Producción
 
@@ -150,6 +163,23 @@ Los archivos compilados estarán en el directorio `dist/`.
 ```bash
 npm run preview
 ```
+
+## 🚀 Deploy en Render (Single Web Service)
+
+Configurar el servicio como un único **Web Service** de Node/Express que sirve frontend + API.
+
+- **Build Command**: `npm install && npm run build`
+- **Start Command**: `npm run start`
+
+### Variables de entorno requeridas
+
+- `RETELL_API_KEY`
+- `RETELL_FROM_NUMBER`
+- `RETELL_AGENT_*` (por ejemplo: `RETELL_AGENT_SUPPORT`, `RETELL_AGENT_COLLECTIONS`, `RETELL_AGENT_SALES`, `RETELL_AGENT_SURVEYS`)
+
+### Variable opcional
+
+- `CORS_ORIGIN` (si necesitas permitir un origen explícito distinto al mismo dominio)
 
 ## 🔧 Configuración de Agentes
 

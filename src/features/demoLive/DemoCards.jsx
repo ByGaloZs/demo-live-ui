@@ -23,17 +23,24 @@ function DemoCards({ options, selectedId, onSelect }) {
       {options.map((option) => {
         // Determina si esta tarjeta está actualmente seleccionada
         const isSelected = option.id === selectedId;
+        const isEnabled = option.enabled;
 
         return (
           <button
             key={option.id}
             type="button"
             // Notifica al componente padre cuando se selecciona esta tarjeta
-            onClick={() => onSelect(option.id)}
+            onClick={() => {
+              if (!isEnabled) return;
+              onSelect(option.id);
+            }}
+            disabled={!isEnabled}
             aria-pressed={isSelected}
             className={[
               "relative w-full h-full flex flex-col rounded-2xl border bg-white p-5 text-left shadow-sm transition",
-              "hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500/30",
+              isEnabled
+                ? "hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                : "opacity-50 grayscale cursor-not-allowed",
               // Estilos condicionales: borde e indicador visual para la tarjeta seleccionada
               isSelected ? "border-indigo-400 ring-2 ring-indigo-200" : "border-slate-200",
             ].join(" ")}
@@ -42,6 +49,12 @@ function DemoCards({ options, selectedId, onSelect }) {
             {option.badge ? (
               <span className="absolute -top-3 right-6 -translate-x-1/2 rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-semibold text-indigo-700 z-10 shadow-sm ring-1 ring-indigo-200">
                 {option.badge}
+              </span>
+            ) : null}
+
+            {!isEnabled ? (
+              <span className="absolute top-3 right-3 rounded-full bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-300">
+                Próximamente
               </span>
             ) : null}
 

@@ -10,6 +10,8 @@ import { demoOptions, benefits } from "./demoData";
 import DemoCards from "./DemoCards";
 import DemoForm from "./DemoForm";
 
+const DEFAULT_DEMO_ID = "collections";
+
 /**
  * Estado inicial del formulario de solicitud de demo.
  */
@@ -29,13 +31,20 @@ const initialFormState = {
  */
 function DemoLiveSection() {
   // Estado para controlar la opción de demo seleccionada
-  const [selectedDemoId, setSelectedDemoId] = useState(demoOptions[0].id);
+  const [selectedDemoId, setSelectedDemoId] = useState(DEFAULT_DEMO_ID);
 
   // Estado centralizado de los campos del formulario
   const [formValues, setFormValues] = useState(initialFormState);
 
-  // Obtiene el objeto completo de la demo activa usando el ID seleccionado
-  const selectedDemo = demoOptions.find((demo) => demo.id === selectedDemoId);
+  const defaultDemo = demoOptions.find((demo) => demo.id === DEFAULT_DEMO_ID && demo.enabled);
+  const selectedEnabledDemo = demoOptions.find((demo) => demo.id === selectedDemoId && demo.enabled);
+  // Si por cualquier motivo se intenta usar una demo deshabilitada, vuelve a Cobranza.
+  const selectedDemo = selectedEnabledDemo || defaultDemo;
+
+  const handleSelectDemo = (demoId) => {
+    const nextDemo = demoOptions.find((demo) => demo.id === demoId && demo.enabled);
+    setSelectedDemoId(nextDemo ? nextDemo.id : DEFAULT_DEMO_ID);
+  };
 
   /**
    * Manejador genérico para cambios en los inputs del formulario.
@@ -106,7 +115,11 @@ function DemoLiveSection() {
             {/* IMPORTANTE: este wrapper deja que DemoCards se estire */}
             <div className="flex-1">
               {/* Componente presentacional; seleccion controlada por este contenedor */}
-              <DemoCards options={demoOptions} selectedId={selectedDemoId} onSelect={setSelectedDemoId} />
+              <DemoCards
+                options={demoOptions}
+                selectedId={selectedDemo?.id || DEFAULT_DEMO_ID}
+                onSelect={handleSelectDemo}
+              />
             </div>
           </div>
         </div>

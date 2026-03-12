@@ -11,6 +11,7 @@ import { getAgentConfig, isValidDemoId } from "../config/demoAgents.js";
 import { createRetellPhoneCall } from "../services/retellClient.js";
 import { DEMO_DEFAULTS } from "../config/demoDefaults.js";
 import { isValidE164 } from "../utils/phoneValidator.js";
+import { getTodayDateString } from "../utils/dateFormatter.js";
 
 const router = express.Router();
 
@@ -91,10 +92,10 @@ router.post("/call-demo", async (req, res) => {
       if (defaults) {
         dynamicVars = {
           ...dynamicVars,
-          rl_today: defaults.rl_today,
-          rl_dueDate: defaults.rl_dueDate,
-          rl_amount: defaults.rl_amount,
-          rl_dpd: defaults.rl_dpd,
+          rl_today: getTodayDateString(),
+          rl_dueDate: defaults.dueDate,
+          rl_amount: defaults.amount,
+          rl_dpd: defaults.dpd,
         };
       }
     }

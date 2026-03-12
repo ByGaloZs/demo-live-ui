@@ -109,15 +109,12 @@ RETELL_AGENT_COLLECTIONS=agent_id_collections
 RETELL_AGENT_SALES=agent_id_sales
 RETELL_AGENT_SURVEYS=agent_id_surveys
 
-# Variables fijas para demo de Collections (opcionales)
-RETELL_COLLECTIONS_AMOUNT=1500
-RETELL_COLLECTIONS_DPD=1
-RETELL_COLLECTIONS_TODAY=2026-03-08
-RETELL_COLLECTIONS_DUE_DATE=2026-03-11
-
 # Puerto del servidor backend (opcional, default: 8787)
 PORT=8787
 ```
+
+Para la demo de cobranza (`collections`), los valores por defecto de monto, días de atraso y fecha de vencimiento
+se definen en `server/config/demoDefaults.js`. La variable `rl_today` se genera dinámicamente al crear cada llamada.
 
 > **Nota**: Si no configuras las variables de Retell, la aplicación funcionará en **modo mock** (simula llamadas sin ejecutarlas realmente).
 
@@ -186,10 +183,6 @@ Configurar el servicio como un único **Web Service** de Node/Express que sirve 
 ### Variable opcional
 
 - `CORS_ORIGIN` (si necesitas permitir un origen explícito distinto al mismo dominio)
-- `RETELL_COLLECTIONS_AMOUNT`
-- `RETELL_COLLECTIONS_DPD`
-- `RETELL_COLLECTIONS_TODAY`
-- `RETELL_COLLECTIONS_DUE_DATE`
 
 ## 🔧 Configuración de Agentes
 

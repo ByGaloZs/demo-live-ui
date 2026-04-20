@@ -1,117 +1,101 @@
-/**
- * server/routes/callDemo.js
- * Rutas para gestionar solicitudes de demostraciones en vivo.
- * Maneja la validación de datos del formulario, construcción de variables dinámicas
- * y creación de llamadas telefónicas con Retell AI.
- */
-
 import express from "express";
 import { parseFullName } from "../utils/nameParser.js";
 import { getAgentConfig, isValidDemoId } from "../config/demoAgents.js";
 import { createRetellPhoneCall } from "../services/retellClient.js";
-import { DEMO_DEFAULTS } from "../config/demoDefaults.js";
-import { isValidE164 } from "../utils/phoneValidator.js";
-import { getTodayDateString } from "../utils/dateFormatter.js";
 
 const router = express.Router();
 
-/**
- * POST /api/call-demo
- *
- * Recibe datos del formulario y:
- * - Valida inputs (phone, fullName, demoId).
- * - Determina el agente según demoId.
- * - Construye dynamic variables para el agente.
- * - Decide si hace llamada REAL (Retell) o MOCK:
- *    - REAL si existe RETELL_API_KEY + RETELL_FROM_NUMBER + agentId real (no "mock-").
- *    - MOCK si falta algo (o el agentId sigue siendo "mock-...").
- *
- * Expected request body:
- * {
- *   "phone": "+525512345678",
- *   "fullName": "Mario Padilla Franco",
- *   "demoId": "collections"
- * }
- *
- * Response estándar:
- * - Siempre incluye "payload" (para que el frontend sea consistente)
- * - Si es retell, también incluye "call_id"
- */
+function normalizePhoneToE164(phone) {
+  if (!phone || typeof phone !== "string") return "";
+
+  const digits = phone.replace(/\D/g, "");
+
+  if (digits.length === 10) {
+    return `+52${digits}`;
+  }
+
+  if (digits.length === 12 && digits.startsWith("52")) {
+    return `+${digits}`;
+  }
+
+  if (phone.trim().startsWith("+")) {
+    return `+${digits}`;
+  }
+
+  return `+${digits}`;
+}
+
+function isValidE164(phone) {
+  return /^\+\d{10,15}$/.test(phone);
+}
+
+function formatDateToDDMMYYYY(dateValue) {
+  if (!dateValue || typeof dateValue !== "string") return "";
+
+  const match = dateValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return dateValue;
+
+  const [, year, month, day] = match;
+  return `${day}/${month}/${year}`;
+}
+
+function getTodayDateString() {
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, "0");
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const year = now.getFullYear();
+
+  return `${day}/${month}/${year}`;
+}
+
 router.post("/call-demo", async (req, res) => {
   try {
-    const { phone, fullName, demoId } = req.body;
+    const { phone, fullName, paymentDate, amount, demoId = "collections" } = req.body;
 
-    // 1) Validación de campos requeridos
-    if (!phone || !fullName || !demoId) {
+    if (!phone || !fullName || !paymentDate || !amount || !demoId) {
       return res.status(400).json({
         ok: false,
-        message: "Missing required fields: phone, fullName, demoId",
+        message: "Missing required fields: phone, fullName, paymentDate, amount, demoId",
       });
     }
 
-    // 2) Validación del teléfono (formato E.164)
-    if (!isValidE164(phone)) {
-      return res.status(400).json({
-        ok: false,
-        message: "Invalid phone format. Use E.164 like +525512345678",
-      });
-    }
-
-    // 3) Validación del demoId
     if (!isValidDemoId(demoId)) {
       return res.status(400).json({
         ok: false,
-        message: `Invalid demoId: ${demoId}.`,
+        message: `Invalid demoId: ${demoId}`,
       });
     }
 
-    // 4) Obtener configuración del agente para ese demo
+    const normalizedPhone = normalizePhoneToE164(phone);
+
+    if (!isValidE164(normalizedPhone)) {
+      return res.status(400).json({
+        ok: false,
+        message: "Número inválido.",
+      });
+    }
+
+    const { rl_clientName, rl_clientSurname } = parseFullName(fullName);
+    const formattedDebtDate = formatDateToDDMMYYYY(paymentDate);
+    const formattedAmount = String(amount).trim();
+
+    const dynamicVariables = {
+      rl_clientName,
+      rl_clientSurname,
+      rl_debtAmount: formattedAmount,
+      rl_debtDate: formattedDebtDate,
+      rl_today: getTodayDateString(),
+    };
+
     const agentConfig = getAgentConfig(demoId);
+
     if (!agentConfig) {
       return res.status(500).json({
         ok: false,
-        message: "Failed to load agent configuration",
+        message: "No se pudo cargar la configuración del agente.",
       });
     }
 
-    // 5) Parsear nombre completo -> (rl_clientName, rl_clientSurname)
-    const { rl_clientName, rl_clientSurname } = parseFullName(fullName);
-
-    // 6) Construir dynamic variables base (válidas para cualquier demo)
-    let dynamicVars = {
-      rl_clientName,
-      rl_clientSurname,
-    };
-
-    // 7) Si es collections, agregamos variables extra para que el script suene "real"
-    //    (Si luego quieres defaults para otros demos, se hace igual con su config)
-    if (demoId === "collections") {
-      const defaults = DEMO_DEFAULTS?.collections;
-
-      // Si por alguna razón no hay defaults, igual seguimos (solo con nombre/apellido)
-      if (defaults) {
-        dynamicVars = {
-          ...dynamicVars,
-          rl_today: getTodayDateString(),
-          rl_dueDate: defaults.dueDate,
-          rl_amount: defaults.amount,
-          rl_dpd: defaults.dpd,
-        };
-      }
-    }
-
-    // 8) Payload estándar que SIEMPRE regresamos al frontend (modo mock o retell)
-    //    Esto evita "payload: undefined" en el frontend.
-    const requestPayload = {
-      to_number: phone,
-      agent_id: agentConfig.agentId,
-      retell_llm_dynamic_variables: dynamicVars,
-    };
-
-    // 9) Decidir si hacemos llamada real con Retell
-    //    - Debe existir API Key
-    //    - Debe existir FROM number
-    //    - agentId debe ser real (no mock)
     const fromNumber = process.env.RETELL_FROM_NUMBER;
     const hasRetellConfig =
       Boolean(process.env.RETELL_API_KEY) &&
@@ -119,49 +103,55 @@ router.post("/call-demo", async (req, res) => {
       Boolean(agentConfig.agentId) &&
       !String(agentConfig.agentId).startsWith("mock-");
 
-    // 10) Si hay config real: llamar a Retell
-    if (hasRetellConfig) {
-      try {
-        const retellResp = await createRetellPhoneCall({
-          fromNumber,
-          toNumber: phone,
-          overrideAgentId: agentConfig.agentId,
-          dynamicVariables: dynamicVars,
-        });
-
-        return res.status(200).json({
-          ok: true,
-          mode: "retell",
-          message: "Retell call created",
-          call_id: retellResp?.call_id || null,
-          payload: {
-            ...requestPayload,
-            from_number: fromNumber, // útil para debug/consistencia
-          },
-        });
-      } catch (error) {
-        console.error("Retell error:", error?.details || error);
-        return res.status(error.status || 500).json({
-          ok: false,
-          mode: "retell",
-          message: error.message || "Retell call failed",
-          payload: requestPayload, // lo devolvemos para debug sin exponer details
-        });
-      }
+    if (!hasRetellConfig) {
+      return res.status(200).json({
+        ok: true,
+        mode: "mock",
+        message: "Mock payload created",
+        payload: {
+          to_number: normalizedPhone,
+          agent_id: agentConfig.agentId,
+          retell_llm_dynamic_variables: dynamicVariables,
+        },
+      });
     }
 
-    // 11) Si NO hay config real: responder mock (mismo contrato)
+    const retellResponse = await createRetellPhoneCall({
+      fromNumber,
+      toNumber: normalizedPhone,
+      overrideAgentId: agentConfig.agentId,
+      dynamicVariables,
+    });
+
+    console.log("Outgoing call config:", {
+      agentId: agentConfig?.agentId,
+      fromNumber,
+      normalizedPhone,
+      dynamicVariables,
+    });
+
+    console.log("Retell response:", retellResponse);
+
     return res.status(200).json({
       ok: true,
-      mode: "mock",
-      message: "Mock call payload created",
-      payload: requestPayload,
+      mode: "retell",
+      message: "Call created successfully",
+      call_id: retellResponse?.call_id || null,
+      payload: {
+        to_number: normalizedPhone,
+        from_number: fromNumber,
+        agent_id: agentConfig.agentId,
+        retell_llm_dynamic_variables: dynamicVariables,
+      },
     });
   } catch (error) {
     console.error("Error in /api/call-demo:", error);
-    return res.status(500).json({
+    console.error("Retell error details:", error?.details);
+
+    return res.status(error?.status || 500).json({
       ok: false,
-      message: "Internal server error",
+      message: error?.message || "Internal server error",
+      details: error?.details || null,
     });
   }
 });

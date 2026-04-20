@@ -123,6 +123,15 @@ router.post("/call-demo", async (req, res) => {
       dynamicVariables,
     });
 
+    console.log("Outgoing call config:", {
+      agentId: agentConfig?.agentId,
+      fromNumber,
+      normalizedPhone,
+      dynamicVariables,
+    });
+
+    console.log("Retell response:", retellResponse);
+
     return res.status(200).json({
       ok: true,
       mode: "retell",
@@ -137,6 +146,7 @@ router.post("/call-demo", async (req, res) => {
     });
   } catch (error) {
     console.error("Error in /api/call-demo:", error);
+    console.error("Retell error details:", error?.details);
 
     return res.status(error?.status || 500).json({
       ok: false,

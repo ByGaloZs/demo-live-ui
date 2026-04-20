@@ -27,6 +27,7 @@ export const demoOptions = [
     title: "Atención al Cliente",
     description: "Resolución de consultas",
     icon: headset,
+    enabled: false,
   },
   {
     id: "collections",
@@ -34,7 +35,8 @@ export const demoOptions = [
     description: "Recordatorios de pago",
     badge: "Popular",
     icon: bank,
+    enabled: true,
   },
-  { id: "sales", title: "Ventas", description: "Calificación de leads", icon: trendUp },
-  { id: "surveys", title: "Encuestas", description: "Satisfacción (NPS)", icon: clipboard },
+  { id: "sales", title: "Ventas", description: "Calificación de leads", icon: trendUp, enabled: false },
+  { id: "surveys", title: "Encuestas", description: "Satisfacción (NPS)", icon: clipboard, enabled: false },
 ];

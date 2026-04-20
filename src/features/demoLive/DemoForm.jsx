@@ -1,181 +1,219 @@
-/**
- * src/features/demoLive/DemoForm.jsx
- * Formulario para solicitar una demostración en vivo.
- * Recopila datos del usuario y envía la solicitud al servidor para iniciar una llamada.
- */
+import { useMemo, useState } from "react";
 
-import { useState } from "react";
+const baseInputStyles =
+  "mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400";
+const errorInputStyles = "border-red-300 focus:border-red-400";
+const labelStyles = "text-sm font-medium text-slate-700";
+const errorTextStyles = "mt-1 text-xs text-red-600";
 
-/**
- * Estilos reutilizables para inputs del formulario.
- * Utiliza clases de Tailwind CSS para apariencia consistente.
- */
-const inputStyles =
-  "mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-300/50";
+function validateForm(values) {
+  const errors = {};
 
-/**
- * Componente DemoForm
- * Renderiza un formulario para solicitar demostraciones en vivo.
- * El formulario es controlado por el componente padre (DemoLiveSection).
- *
- * @param {Object} props - Props del componente
- * @param {Object} props.values - Valores actuales del formulario
- * @param {Function} props.onChange - Callback para cambios en los inputs
- * @param {Object} props.selectedDemo - Información de la demo seleccionada
- */
-function DemoForm({ values, onChange, selectedDemo }) {
-  // Estado para controlar la carga durante el envío del formulario
-  const [isLoading, setIsLoading] = useState(false);
+  if (!values.fullName.trim()) {
+    errors.fullName = "Ingresa el nombre.";
+  }
 
-  /**
-   * Manejador del envío del formulario.
-   * Valida los datos, envía la solicitud al servidor y muestra feedback al usuario.
-   *
-   * @param {Event} event - Evento del formulario
-   */
+  const phoneDigits = values.phoneNumber.replace(/\D/g, "");
+  if (!values.phoneNumber.trim()) {
+    errors.phoneNumber = "Ingresa el número.";
+  } else if (phoneDigits.length < 10) {
+    errors.phoneNumber = "Debe tener al menos 10 dígitos.";
+  }
+
+  if (!values.paymentDate) {
+    errors.paymentDate = "Selecciona la fecha.";
+  }
+
+  if (!String(values.amount).trim()) {
+    errors.amount = "Ingresa el monto.";
+  } else if (Number(values.amount) <= 0) {
+    errors.amount = "Debe ser mayor a 0.";
+  }
+
+  return errors;
+}
+
+function DemoForm({ values, onChange }) {
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitState, setSubmitState] = useState({
+    type: "",
+    message: "",
+  });
+
+  const isFormComplete = useMemo(() => {
+    return values.fullName.trim() && values.phoneNumber.trim() && values.paymentDate && String(values.amount).trim();
+  }, [values]);
+
+  const getInputClassName = (fieldName) => {
+    return `${baseInputStyles} ${errors[fieldName] ? errorInputStyles : ""}`;
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    // Valida que los campos requeridos estén completos
-    if (!values.phone || !values.fullName) {
-      alert("Por favor completa el teléfono y nombre completo.");
+    const validationErrors = validateForm(values);
+    setErrors(validationErrors);
+    setSubmitState({ type: "", message: "" });
+
+    if (Object.keys(validationErrors).length > 0) {
       return;
     }
 
-    // Obtiene el ID de la demo seleccionada (default: "collections")
-    const demoId = selectedDemo?.id || "collections";
-
-    setIsLoading(true);
+    setIsSubmitting(true);
 
     try {
-      // Envía la solicitud al endpoint del servidor
       const response = await fetch("/api/call-demo", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          phone: values.phone,
           fullName: values.fullName,
-          demoId: demoId,
+          phone: values.phoneNumber,
+          paymentDate: values.paymentDate,
+          amount: values.amount,
+          demoId: "collections",
         }),
       });
 
-      // Parsea la respuesta JSON
-      const data = await response.json();
+      const rawText = await response.text();
 
-      // Verifica si la solicitud fue exitosa
+      let data = {};
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch {
+        data = {
+          ok: false,
+          message: rawText || `HTTP ${response.status}`,
+        };
+      }
+
       if (!response.ok || !data.ok) {
-        console.error("Call demo error:", data);
-        alert(`Error: ${data.message || "No se pudo procesar la llamada"}`);
+        setSubmitState({
+          type: "error",
+          message: data.message || `Error ${response.status}: no se pudo procesar la solicitud.`,
+        });
+
+        console.error("Call demo error response:", {
+          status: response.status,
+          data,
+        });
         return;
       }
 
-      // Éxito: muestra confirmación al usuario
-      alert(`¡Perfecto! Nos comunicaremos a ${values.phone} en 30 segundos. Agente: ${selectedDemo?.title || "Demo"}`);
+      setSubmitState({
+        type: "success",
+        message:
+          data.mode === "mock"
+            ? "Formulario enviado. Payload generado en modo mock."
+            : "Llamada solicitada correctamente.",
+      });
 
-      // Log del payload para debugging
-      console.log("Mock call payload:", data.payload);
+      console.log("Call demo response:", data);
     } catch (error) {
-      // Maneja errores de conexión
-      console.error("Error submitting call:", error);
-      alert("Error de conexión. Por favor intenta de nuevo.");
+      console.error("Submit error:", error);
+
+      setSubmitState({
+        type: "error",
+        message: error.message || "Error inesperado al enviar el formulario.",
+      });
     } finally {
-      // Finaliza el estado de carga
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border-2 border-slate-100 bg-white shadow-2xl">
-      <div className="p-6 sm:p-8 relative">
-        {/* Encabezado del formulario */}
-        <div className="flex items-start justify-between gap-4 mb-2">
+    <form onSubmit={handleSubmit} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+      <div className="space-y-5">
+        <div>
+          <label htmlFor="fullName" className={labelStyles}>
+            Nombre
+          </label>
+          <input
+            id="fullName"
+            name="fullName"
+            type="text"
+            placeholder="Mario Padilla"
+            value={values.fullName}
+            onChange={onChange}
+            className={getInputClassName("fullName")}
+          />
+          {errors.fullName ? <p className={errorTextStyles}>{errors.fullName}</p> : null}
+        </div>
+
+        <div>
+          <label htmlFor="phoneNumber" className={labelStyles}>
+            Número
+          </label>
+          <input
+            id="phoneNumber"
+            name="phoneNumber"
+            type="tel"
+            placeholder="+52 55 1234 5678"
+            value={values.phoneNumber}
+            onChange={onChange}
+            className={getInputClassName("phoneNumber")}
+          />
+          {errors.phoneNumber ? <p className={errorTextStyles}>{errors.phoneNumber}</p> : null}
+        </div>
+
+        <div className="grid gap-5 sm:grid-cols-2">
           <div>
-            <p className="text-2xl font-bold text-slate-900">Solicita tu Demo en Vivo</p>
-            <p className="mt-1 text-sm text-slate-600">Elige un escenario y te llamamos en 30 segundos</p>
+            <label htmlFor="paymentDate" className={labelStyles}>
+              Fecha de pago
+            </label>
+            <input
+              id="paymentDate"
+              name="paymentDate"
+              type="date"
+              value={values.paymentDate}
+              onChange={onChange}
+              className={getInputClassName("paymentDate")}
+            />
+            {errors.paymentDate ? <p className={errorTextStyles}>{errors.paymentDate}</p> : null}
+          </div>
+
+          <div>
+            <label htmlFor="amount" className={labelStyles}>
+              Monto
+            </label>
+            <input
+              id="amount"
+              name="amount"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="3500"
+              value={values.amount}
+              onChange={onChange}
+              className={getInputClassName("amount")}
+            />
+            {errors.amount ? <p className={errorTextStyles}>{errors.amount}</p> : null}
           </div>
         </div>
 
-        <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-          {/* Los inputs están controlados por el componente padre (DemoLiveSection) */}
-          <div>
-            <label className="text-sm font-semibold text-slate-700">Número de teléfono</label>
-            <input
-              name="phone"
-              value={values.phone}
-              onChange={onChange}
-              placeholder="+52 55 0000 0000"
-              className={inputStyles}
-            />
-          </div>
+        <button
+          type="submit"
+          disabled={!isFormComplete || isSubmitting}
+          className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+        >
+          {isSubmitting ? "Procesando..." : "Llamar ahora"}
+        </button>
 
-          <div>
-            <label className="text-sm font-semibold text-slate-700">Nombre completo</label>
-            <input
-              name="fullName"
-              value={values.fullName}
-              onChange={onChange}
-              placeholder="Tu nombre"
-              className={inputStyles}
-            />
+        {submitState.type === "success" ? (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            {submitState.message}
           </div>
+        ) : null}
 
-          <div>
-            <label className="text-sm font-semibold text-slate-700">Nombre de Empresa</label>
-            <input
-              name="companyName"
-              value={values.companyName}
-              onChange={onChange}
-              placeholder="Nombre de tu empresa"
-              className={inputStyles}
-            />
+        {submitState.type === "error" ? (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {submitState.message}
           </div>
-
-          <div>
-            <label className="text-sm font-semibold text-slate-700">Correo electrónico</label>
-            <input
-              name="email"
-              type="email"
-              value={values.email}
-              onChange={onChange}
-              placeholder="nombre@empresa.com"
-              className={inputStyles}
-            />
-          </div>
-
-          <div className="pt-3">
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 text-base font-bold text-white shadow-lg shadow-blue-300/50 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-blue-300/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-lg"
-            >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773c.058.319.159.717.327 1.142.228.567.534 1.273.97 2 .436.727.95 1.379 1.578 1.913.629.534 1.265.821 1.914.821.649 0 1.285-.287 1.914-.82.627-.535 1.142-1.186 1.578-1.914.436-.727.742-1.433.97-2 .168-.425.269-.823.327-1.142L14.46 6.27a1 1 0 01-.54-1.06l.74-4.435A1 1 0 0116.847 2H19a1 1 0 011 1v14a1 1 0 01-1 1h-2.153a1 1 0 01-.986-.836l-.74-4.435a1 1 0 01.54-1.06l1.548-.773c-.058-.319-.159-.717-.327-1.142-.228-.567-.534-1.273-.97-2-.436-.727-.95-1.379-1.578-1.913-.629-.534-1.265-.821-1.914-.821-.649 0-1.285.287-1.914.82-.627.535-1.142 1.186-1.578 1.914-.436.727-.742 1.433-.97 2-.168.425-.269.823-.327 1.142l1.548.773a1 1 0 01.54 1.06l-.74 4.435a1 1 0 01-.986.836H4a1 1 0 01-1-1V3z" />
-              </svg>
-              {isLoading ? "Procesando..." : "Llamar ahora"}
-            </button>
-            <p className="mt-3 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
-              <span>🔒</span> Protegemos tus datos • Atención inmediata
-            </p>
-          </div>
-        </form>
+        ) : null}
       </div>
-
-      <div className="absolute bottom-0 right-0 opacity-30 pointer-events-none">
-        <svg width="200" height="200" viewBox="0 0 200 200" className="text-blue-200">
-          <circle cx="100" cy="100" r="80" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.2" />
-          <circle cx="100" cy="100" r="60" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.3" />
-          <path
-            d="M100 80 C110 80, 120 85, 120 95 L120 130 C120 135, 115 140, 110 140 L90 140 C85 140, 80 135, 80 130 L80 95 C80 85, 90 80, 100 80 M85 95 L115 95 M100 105 L100 125"
-            stroke="currentColor"
-            fill="none"
-            strokeWidth="2"
-            opacity="0.4"
-          />
-        </svg>
-      </div>
-    </div>
+    </form>
   );
 }
 
